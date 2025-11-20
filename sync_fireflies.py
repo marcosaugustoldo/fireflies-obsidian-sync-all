@@ -43,54 +43,33 @@ class FirefliesObsidianSync:
             raise ValueError(f"Obsidian vault path does not exist: {self.vault_path}")
 
     def fetch_meetings(self) -> List[Dict]:
-        """Fetch meetings from Fireflies API using GraphQL.
+        """Fetch recent meetings from Fireflies API using GraphQL.
 
-        Fetches only meetings that occurred today (based on local timezone).
+        Fetches recent meetings and filters for today's meetings locally.
+        Note: Date filtering (fromDate/toDate) requires a Business plan.
         """
-        # Calculate today's date range in ISO 8601 format
-        # Get start of today (00:00:00) in UTC
+        # Calculate today's date range for local filtering
         now = datetime.now(timezone.utc)
         today_start = datetime.combine(now.date(), time.min, tzinfo=timezone.utc)
         today_end = datetime.combine(now.date(), time.max, tzinfo=timezone.utc)
 
-        # Format as ISO 8601 strings
-        from_date = today_start.isoformat()
-        to_date = today_end.isoformat()
-
-        # GraphQL query to fetch transcripts with date filtering
+        # GraphQL query to fetch recent transcripts (no date filtering)
+        # Fetch last 10 meetings and filter for today locally
+        # Note: Only requesting basic fields available on free plan
         query = """
-        query Transcripts($fromDate: String, $toDate: String) {
-          transcripts(fromDate: $fromDate, toDate: $toDate) {
+        query Transcripts($limit: Int) {
+          transcripts(limit: $limit) {
             id
             title
             date
             duration
             organizer_email
-            participants
-            meeting_attendees {
-              displayName
-              email
-            }
-            summary {
-              overview
-              keywords
-              action_items
-              outline
-            }
-            sentences {
-              text
-              speaker_name
-              start_time
-            }
-            audio_url
-            video_url
           }
         }
         """
 
         variables = {
-            "fromDate": from_date,
-            "toDate": to_date
+            "limit": 10  # Fetch last 10 meetings
         }
 
         headers = {
@@ -104,8 +83,9 @@ class FirefliesObsidianSync:
         }
 
         try:
-            print(f"Fetching today's meetings from Fireflies API...")
-            print(f"  → Date range: {today_start.strftime('%Y-%m-%d')} (UTC)")
+            print(f"Fetching recent meetings from Fireflies API...")
+            print(f"  → Looking for meetings from: {today_start.strftime('%Y-%m-%d')} (UTC)")
+            print(f"  → Note: Fetching last 10 meetings and filtering locally")
 
             response = requests.post(
                 self.FIREFLIES_API_URL,
@@ -118,6 +98,27 @@ class FirefliesObsidianSync:
             if response.status_code != 200:
                 print(f"\n❌ API returned status code {response.status_code}")
                 print(f"Response body: {response.text[:500]}")
+
+                # Try to parse error details from response
+                try:
+                    error_data = response.json()
+                    if "errors" in error_data:
+                        errors = error_data["errors"]
+                        for err in errors:
+                            error_code = err.get("code", "")
+                            error_msg = err.get("message", "")
+
+                            # Check for authentication errors
+                            if error_code == "auth_failed" or "authenticat" in error_msg.lower():
+                                raise Exception(
+                                    f"Authentication failed: {error_msg}\n"
+                                    f"  → Your FF_API_KEY is invalid or expired\n"
+                                    f"  → Get a new key at: https://app.fireflies.ai/integrations/custom/fireflies\n"
+                                    f"  → Update the FF_API_KEY in your .env file"
+                                )
+                except:
+                    pass
+
                 response.raise_for_status()
 
             data = response.json()
@@ -131,14 +132,38 @@ class FirefliesObsidianSync:
             if "data" not in data:
                 raise Exception(f"No 'data' field in response: {data}")
 
-            transcripts = data.get("data", {}).get("transcripts", [])
+            all_transcripts = data.get("data", {}).get("transcripts", [])
 
-            if transcripts is None:
+            if all_transcripts is None:
                 print(f"\n⚠️  Warning: transcripts field is None. Full response: {data}")
-                transcripts = []
+                all_transcripts = []
 
-            print(f"Successfully fetched {len(transcripts)} meetings")
-            return transcripts
+            print(f"Fetched {len(all_transcripts)} recent meetings")
+
+            # Filter for today's meetings only
+            today_transcripts = []
+            for transcript in all_transcripts:
+                try:
+                    # Parse the meeting date (can be Unix timestamp or ISO string)
+                    date_value = transcript['date']
+
+                    if isinstance(date_value, (int, float)):
+                        # Unix timestamp (milliseconds)
+                        meeting_date = datetime.fromtimestamp(date_value / 1000, tz=timezone.utc)
+                    else:
+                        # ISO string format
+                        meeting_date = datetime.fromisoformat(date_value.replace('Z', '+00:00'))
+
+                    # Check if meeting is from today
+                    if today_start <= meeting_date <= today_end:
+                        today_transcripts.append(transcript)
+                        print(f"  ✓ Found today's meeting: {transcript.get('title', 'Unknown')}")
+                except Exception as e:
+                    print(f"  ⚠️  Warning: Could not parse date for meeting {transcript.get('title', 'Unknown')}: {e}")
+                    continue
+
+            print(f"Found {len(today_transcripts)} meeting(s) from today")
+            return today_transcripts
 
         except requests.exceptions.HTTPError as e:
             # Provide more detailed error information
@@ -147,7 +172,7 @@ class FirefliesObsidianSync:
                 error_msg += "\n  → Check that your FF_API_KEY is correct"
             elif e.response.status_code == 500:
                 error_msg += "\n  → Server error. The API may be temporarily unavailable or the query may be invalid"
-                error_msg += f"\n  → The script only fetches today's meetings. Check if you have meetings scheduled for today."
+                error_msg += f"\n  → Try running 'python test_api.py' to diagnose the issue"
             raise Exception(error_msg)
         except requests.exceptions.RequestException as e:
             raise Exception(f"Failed to fetch meetings from Fireflies API: {e}")
@@ -170,11 +195,14 @@ class FirefliesObsidianSync:
         secs = int(seconds % 60)
         return f"{minutes:02d}:{secs:02d}"
 
-    def _sanitize_filename(self, title: str, date: str) -> str:
+    def _sanitize_filename(self, title: str, date) -> str:
         """Create a safe filename from meeting title and date."""
-        # Parse the date
+        # Parse the date (can be Unix timestamp or ISO string)
         try:
-            dt = datetime.fromisoformat(date.replace('Z', '+00:00'))
+            if isinstance(date, (int, float)):
+                dt = datetime.fromtimestamp(date / 1000, tz=timezone.utc)
+            else:
+                dt = datetime.fromisoformat(date.replace('Z', '+00:00'))
             date_str = dt.strftime("%Y-%m-%d")
         except:
             date_str = "unknown-date"
@@ -190,9 +218,13 @@ class FirefliesObsidianSync:
 
     def _generate_markdown(self, meeting: Dict) -> str:
         """Generate Markdown content with YAML frontmatter for a meeting."""
-        # Parse date
+        # Parse date (can be Unix timestamp or ISO string)
         try:
-            dt = datetime.fromisoformat(meeting['date'].replace('Z', '+00:00'))
+            date_value = meeting['date']
+            if isinstance(date_value, (int, float)):
+                dt = datetime.fromtimestamp(date_value / 1000, tz=timezone.utc)
+            else:
+                dt = datetime.fromisoformat(date_value.replace('Z', '+00:00'))
             date_formatted = dt.strftime("%Y-%m-%d")
             datetime_formatted = dt.strftime("%Y-%m-%d %H:%M")
         except:

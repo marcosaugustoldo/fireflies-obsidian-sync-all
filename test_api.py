@@ -175,7 +175,7 @@ print(f"To:   {to_date}")
 print()
 
 query4 = """
-query Transcripts($fromDate: String, $toDate: String) {
+query Transcripts($fromDate: DateTime, $toDate: DateTime) {
   transcripts(fromDate: $fromDate, toDate: $toDate) {
     id
     title
