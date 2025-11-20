@@ -9,11 +9,12 @@ Automatically sync meeting transcripts and summaries from Fireflies.ai to your O
 - **Rich Markdown output**: Formatted notes with YAML frontmatter
 - **Complete meeting data**:
   - Meeting metadata (date, duration, participants, organizer)
-  - AI-generated summary, keywords, and key points
-  - Action items as checkable tasks
+  - AI-generated summary with overview and keywords
+  - Action items organized by assignee as checkable tasks
   - Full transcript with speaker names and timestamps
-  - Links to audio/video recordings
+  - Direct link to view full meeting on Fireflies
 - **Obsidian-optimized**: Clean formatting designed for Obsidian vaults
+- **Free plan compatible**: Works with Fireflies free accounts
 
 ## Project Structure
 
@@ -121,9 +122,11 @@ Open Obsidian and navigate to `Fireflies Meetings/` to see your synced meeting n
 ### Daily Sync Behavior
 
 The script is designed to sync **only today's meetings**:
-- Each time you run the script, it fetches meetings from the current day
+- Each time you run the script, it fetches the last 10 meetings and filters for today
 - Perfect for automated daily syncing via cron jobs
 - Meetings from previous days are not re-fetched
+
+**Note:** If you have more than 10 meetings in a single day, increase the `limit` parameter in `sync_fireflies.py` (line 92).
 
 ### Idempotent Operation
 
@@ -143,44 +146,64 @@ python sync_fireflies.py
 python sync_fireflies.py
 ```
 
+### What Data is Included
+
+**✅ Available with Free Fireflies Plan:**
+- Meeting title, date, duration
+- Organizer and participant emails
+- Full transcript with speaker names and timestamps
+- AI-generated summary and overview
+- Keywords extracted from discussion
+- Action items organized by assignee
+- Link to view full meeting on Fireflies.ai
+
+**❌ Requires Paid Fireflies Plan:**
+- `audio_url` - Direct audio file download (requires Pro or higher)
+- `video_url` - Direct video file download (requires Business or higher)
+- Date filtering via API (requires Business or higher)
+
+**Workaround:** The script fetches recent meetings and filters locally, so date filtering still works without a paid plan.
+
 ## Automation with Cron (macOS)
 
 Since the script only syncs today's meetings and is idempotent, you can safely schedule it to run multiple times per day to ensure timely syncing.
 
-### Step 1: Make the Script Executable
-
-```bash
-chmod +x /path/to/fireflies_obsidian_sync/sync_fireflies.py
-```
-
-### Step 2: Edit Your Crontab
+### Step 1: Edit Your Crontab
 
 ```bash
 crontab -e
 ```
 
-### Step 3: Add a Cron Job
+### Step 2: Add the Cron Job
 
-**Recommended: Sync every 2 hours during work hours**
-
-```cron
-0 9,11,13,15,17 * * * cd /Users/ritwik/valeo-projects/fireflies_obsidian_sync && /usr/bin/python3 sync_fireflies.py >> /tmp/fireflies_sync.log 2>&1
-```
-
-**Or sync once at end of day:**
+**Recommended: Run hourly Mon-Fri from 10 AM to 8 PM**
 
 ```cron
-0 18 * * * cd /Users/ritwik/valeo-projects/fireflies_obsidian_sync && /usr/bin/python3 sync_fireflies.py >> /tmp/fireflies_sync.log 2>&1
+0 10-20 * * 1-5 cd /Users/ritwik/valeo-projects/fireflies_obsidian_sync && source venv/bin/activate && python3 sync_fireflies.py >> /tmp/fireflies_sync.log 2>&1
 ```
 
-**Adjust the path** to match your actual project location and Python installation.
+**Breakdown:**
+- `0 10-20 * * 1-5`: Every hour at minute 0, from 10 AM to 8 PM, Monday through Friday
+- `source venv/bin/activate`: Activates your virtual environment
+- `>> /tmp/fireflies_sync.log 2>&1`: Logs all output to `/tmp/fireflies_sync.log`
+
+**Important:** Update the path (`/Users/ritwik/valeo-projects/fireflies_obsidian_sync`) to match your actual project location.
 
 ### Other Scheduling Options
 
-- Every hour: `0 * * * *` (catches meetings quickly)
-- Every 3 hours: `0 */3 * * *` (balanced approach)
-- Twice daily (morning and evening): `0 9,17 * * *`
-- Once at 6 PM: `0 18 * * *` (end of day sync)
+```cron
+# Every 2 hours during work day (Mon-Fri)
+0 10,12,14,16,18,20 * * 1-5 cd /path && source venv/bin/activate && python3 sync_fireflies.py >> /tmp/fireflies_sync.log 2>&1
+
+# Twice daily at 10 AM and 6 PM (Mon-Fri)
+0 10,18 * * 1-5 cd /path && source venv/bin/activate && python3 sync_fireflies.py >> /tmp/fireflies_sync.log 2>&1
+
+# Once at end of work day at 6 PM (Mon-Fri)
+0 18 * * 1-5 cd /path && source venv/bin/activate && python3 sync_fireflies.py >> /tmp/fireflies_sync.log 2>&1
+
+# Every day including weekends at 9 AM
+0 9 * * * cd /path && source venv/bin/activate && python3 sync_fireflies.py >> /tmp/fireflies_sync.log 2>&1
+```
 
 **Note:** Since the script only fetches today's meetings, running it multiple times is safe and efficient.
 
@@ -200,47 +223,66 @@ Each meeting is saved as a Markdown file with:
 
 ```yaml
 ---
-date: 2025-01-15
-datetime: 2025-01-15 14:30
-title: Product Strategy Planning
-duration: 45m
-organizer: john@company.com
-fireflies_id: abc123def456
+date: 2025-11-20
+datetime: "2025-11-20 11:00"
+title: Ritwik / Muhammed
+duration: 15m
+organizer: ritwik.gupta@feelvaleo.com
+fireflies_id: 01KAGATHQKYBR4EQ9X8MCDC16Z
 tags:
   - meeting
   - fireflies
 type: meeting-note
 participants:
-  - John Smith
-  - Jane Doe
-  - Bob Johnson
+  - hafil@feelvaleo.com
+  - ritwik.gupta@feelvaleo.com
 keywords:
-  - product roadmap
-  - Q1 goals
-  - feature prioritization
+  - Zoho integration
+  - Shopify
+  - Fulfillment sheet
 ---
 ```
 
 ### Meeting Details
 
-- Date and time
-- Duration
-- Organizer
-- Participants
-- Links to audio/video recordings
+- Date and time (in UTC)
+- Duration (in minutes)
+- Organizer email
+- Participants (email addresses)
+- Link to view full meeting on Fireflies.ai
 
 ### Summary Section
 
-- Overview
-- Keywords
-- Action items (as Obsidian checkboxes)
-- Key points
+- AI-generated overview of the meeting
+- Keywords extracted from discussion
+- Action items organized by assignee (as Obsidian checkboxes)
+
+**Example action items:**
+```markdown
+**Muhammed Hafil**
+- [ ] Share the Fulfillment sheet with Ritwik
+
+**Ritwik Gupta**
+- [ ] Review the shared sheets and discuss with team
+- [ ] Verify the monthly data extraction process
+```
 
 ### Full Transcript
 
-- Speaker names
-- Timestamps
-- Complete conversation
+- Complete conversation with speaker names
+- Timestamps for each statement
+- Organized by speaker turns
+
+**Example:**
+```markdown
+**Ritwik Gupta** `[03:02]`
+I just want to understand the complete Zoho work.
+Integration, how we have done that.
+
+**Muhammed Hafil** `[03:39]`
+So integration and all are done by job.
+Basically shopify integration with Zoho.
+```
 
 ## Troubleshooting
 
@@ -262,13 +304,19 @@ Check that the path in your `.env` file is correct and the folder exists.
 
 This is normal if:
 - You have no meetings scheduled for today
-- Today's meetings haven't been processed by Fireflies yet (there's typically a delay)
+- Today's meetings haven't been processed by Fireflies yet (there's typically a delay after the meeting ends)
 - Your meetings were on different days
 
-**To sync meetings from a different day:**
-- The script only syncs today's meetings by design
-- Run the script on the day you want to sync meetings for
-- Or modify the date range in the script if needed
+**Note:** The script fetches the last 10 meetings and filters for today's date. If you have more than 10 meetings per day, some may not sync.
+
+### Time Zone Note
+
+Meeting times are displayed in **UTC** (Coordinated Universal Time):
+- **UTC time shown**: The raw time from the API
+- **Your local time**: Calculate based on your timezone
+- **Example**: `11:00 UTC` = `4:30 PM IST` (India Standard Time, UTC+5:30)
+
+If you want to display times in your local timezone, you can modify the `_generate_markdown` function in `sync_fireflies.py`.
 
 ### Permission denied when running script
 
@@ -388,19 +436,29 @@ For issues with:
 
 ## Changelog
 
+### Version 1.2 (2025-11-20)
+- **Full data support:** Restored all available meeting data
+- Added complete transcript with speaker names and timestamps
+- Added action items organized by assignee
+- Added comprehensive AI-generated summary with keywords
+- Fixed duration parsing (now shows correct duration in minutes)
+- Improved participant handling
+- Added link to view full meeting on Fireflies
+- Works with Fireflies free plan
+- Updated cron examples for Mon-Fri 10 AM - 8 PM scheduling
+
 ### Version 1.1 (2025-11-20)
 - **Breaking change:** Now fetches only today's meetings (not all meetings)
 - Added idempotent operation - safe to run multiple times
 - Improved error messages and debugging
-- Added date filtering using fromDate/toDate API parameters
+- Local date filtering (fetches last 10 meetings, filters for today)
 - Removed MAX_MEETINGS and DAYS_LOOKBACK configuration options
 - Enhanced documentation with daily sync examples
-- Added test_api.py diagnostic tool
+- Added test_api.py and debug_meeting.py diagnostic tools
 
 ### Version 1.0 (2025-11-20)
 - Initial release
 - GraphQL API integration
 - YAML frontmatter support
-- Action items as checkboxes
-- Transcript with timestamps
+- Basic meeting metadata
 - Duplicate prevention
