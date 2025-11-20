@@ -31,7 +31,7 @@ fireflies_obsidian_sync/
 └── README.md                             # This file
 
 Obsidian Vault/
-└── Valeo Health/
+└── Your Vault Name/
     └── Fireflies Meetings/  # Meeting notes saved here
 ```
 
@@ -85,7 +85,7 @@ Edit the `.env` file with your actual values:
 FF_API_KEY=your_actual_api_key_here
 
 # Obsidian Vault Configuration
-OBSIDIAN_VAULT_PATH=/Users/ritwik/Documents/Obsidian Vault/Valeo Health
+OBSIDIAN_VAULT_PATH=/Users/username/Documents/Obsidian Vault/Your Vault Name
 FIREFLIES_SUBFOLDER=Fireflies Meetings
 ```
 
@@ -208,7 +208,7 @@ Paste this configuration (update paths to match your setup):
     <array>
         <string>/bin/bash</string>
         <string>-c</string>
-        <string>cd /Users/ritwik/valeo-projects/fireflies_obsidian_sync && source venv/bin/activate && python3 sync_fireflies.py</string>
+        <string>cd /Users/username/projects/fireflies_obsidian_sync && source venv/bin/activate && python3 sync_fireflies.py</string>
     </array>
 
     <key>StartCalendarInterval</key>
@@ -304,9 +304,51 @@ launchctl start com.fireflies.obsidian.sync
 # Check if loaded
 launchctl list | grep fireflies
 
-# View logs
+# View application logs
 tail -f /tmp/fireflies_sync.log
 tail -f /tmp/fireflies_sync_error.log
+```
+
+#### Step 4: Check launchd logs
+
+The sync outputs are logged to two locations:
+
+**1. Application Logs (configured in plist):**
+```bash
+# Standard output
+cat /tmp/fireflies_sync.log
+
+# Errors
+cat /tmp/fireflies_sync_error.log
+
+# Watch logs in real-time
+tail -f /tmp/fireflies_sync.log
+```
+
+**2. System Logs (launchd debug info):**
+```bash
+# View launchd system logs for your job
+log show --predicate 'subsystem == "com.apple.launchd"' --info --last 1h | grep fireflies
+
+# Stream live system logs
+log stream --predicate 'subsystem == "com.apple.launchd"' | grep fireflies
+
+# Check if job is running and when it last ran
+launchctl print gui/$(id -u)/com.fireflies.obsidian.sync
+```
+
+**Quick troubleshooting:**
+```bash
+# If logs are empty or job isn't running, check these:
+
+# 1. Verify job is loaded
+launchctl list | grep fireflies
+
+# 2. Check for syntax errors in plist
+plutil -lint ~/Library/LaunchAgents/com.fireflies.obsidian.sync.plist
+
+# 3. View last error from system
+log show --predicate 'eventMessage contains "fireflies"' --last 1d
 ```
 
 #### Managing the launchd job
@@ -326,11 +368,11 @@ launchctl load ~/Library/LaunchAgents/com.fireflies.obsidian.sync.plist
 #### Troubleshooting launchd
 
 ```bash
-# Check for errors
+# Check for errors in application logs
 cat /tmp/fireflies_sync_error.log
 
 # Test the command manually
-cd /Users/ritwik/valeo-projects/fireflies_obsidian_sync && source venv/bin/activate && python3 sync_fireflies.py
+cd /Users/username/projects/fireflies_obsidian_sync && source venv/bin/activate && python3 sync_fireflies.py
 
 # Check launchd status
 launchctl print gui/$(id -u)/com.fireflies.obsidian.sync
@@ -360,7 +402,7 @@ crontab -e
 **Run hourly Mon-Fri from 10 AM to 8 PM:**
 
 ```cron
-0 10-20 * * 1-5 cd /Users/ritwik/valeo-projects/fireflies_obsidian_sync && source venv/bin/activate && python3 sync_fireflies.py >> /tmp/fireflies_sync.log 2>&1
+0 10-20 * * 1-5 cd /Users/username/projects/fireflies_obsidian_sync && source venv/bin/activate && python3 sync_fireflies.py >> /tmp/fireflies_sync.log 2>&1
 ```
 
 **Breakdown:**
@@ -402,23 +444,23 @@ Each meeting is saved as a Markdown file with:
 
 ```yaml
 ---
-date: 2025-11-20
-datetime: "2025-11-20 16:30 IST"
-title: Ritwik / Muhammed
-duration: 15m
-organizer: ritwik.gupta@feelvaleo.com
-fireflies_id: 01KAGATHQKYBR4EQ9X8MCDC16Z
+date: 20 November 2025
+Start Time: "16:30 IST"
+title: Product Strategy Discussion
+duration: 45m
+organizer: user@company.com
+fireflies_id: 01EXAMPLE123456789
 tags:
   - meeting
   - fireflies
 type: meeting-note
 participants:
-  - hafil@feelvaleo.com
-  - ritwik.gupta@feelvaleo.com
+  - participant1@company.com
+  - participant2@company.com
 keywords:
-  - Zoho integration
-  - Shopify
-  - Fulfillment sheet
+  - product roadmap
+  - Q1 planning
+  - feature prioritization
 ---
 ```
 
@@ -438,12 +480,12 @@ keywords:
 
 **Example action items:**
 ```markdown
-**Muhammed Hafil**
-- [ ] Share the Fulfillment sheet with Ritwik
+**Speaker 1**
+- [ ] Share the design mockups with the team
 
-**Ritwik Gupta**
-- [ ] Review the shared sheets and discuss with team
-- [ ] Verify the monthly data extraction process
+**Speaker 2**
+- [ ] Review the shared documents and provide feedback
+- [ ] Schedule follow-up meeting with stakeholders
 ```
 
 ### Full Transcript
@@ -454,13 +496,11 @@ keywords:
 
 **Example:**
 ```markdown
-**Ritwik Gupta** `[03:02]`
-I just want to understand the complete Zoho work.
-Integration, how we have done that.
+**Speaker 1** `[03:02]`
+I just want to understand the complete integration workflow. How we've implemented the data synchronization.
 
-**Muhammed Hafil** `[03:39]`
-So integration and all are done by job.
-Basically shopify integration with Zoho.
+**Speaker 2** `[03:39]`
+The integration is handled by our automated job. It connects the two platforms and syncs data in real-time.
 ```
 
 ## Troubleshooting
@@ -533,7 +573,7 @@ Here are some ideas to enhance this integration:
 
 **Current:** Generic tags (`#meeting`, `#fireflies`)
 **Enhancement:** Auto-tag based on:
-- Participants (e.g., `#with/john-smith`)
+- Participants (e.g., `#with/person-name`)
 - Keywords (e.g., `#product`, `#engineering`)
 - Meeting patterns (e.g., `#standup`, `#one-on-one`)
 
@@ -542,7 +582,7 @@ Here are some ideas to enhance this integration:
 **Enhancement:** Automatically detect and link to relevant project notes:
 
 ```markdown
-Related to: [[Project Alpha]], [[Client XYZ]]
+Related to: [[Project Name]], [[Client Name]]
 ```
 
 ### 5. Custom Templates
@@ -577,7 +617,7 @@ sections:
 
 ```yaml
 sync_filters:
-  include_participants: ["john@company.com"]
+  include_participants: ["user@company.com"]
   exclude_titles: ["Test Meeting"]
   min_duration: 300  # Only meetings > 5 minutes
 ```
