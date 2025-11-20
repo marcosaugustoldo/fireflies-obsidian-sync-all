@@ -269,10 +269,15 @@ class FirefliesObsidianSync:
             # Convert UTC to IST
             dt_ist = dt_utc + self.IST_OFFSET
 
-            date_formatted = dt_ist.strftime("%Y-%m-%d")
-            datetime_formatted = dt_ist.strftime("%Y-%m-%d %H:%M IST")
+            # Format: "20 November 2025"
+            date_formatted = dt_ist.strftime("%d %B %Y")
+            # Format: "16:30 IST" (time only)
+            time_formatted = dt_ist.strftime("%H:%M IST")
+            # Full datetime for Meeting Details section
+            datetime_formatted = dt_ist.strftime("%d %B %Y %H:%M IST")
         except:
             date_formatted = "Unknown"
+            time_formatted = "Unknown"
             datetime_formatted = "Unknown"
 
         # Extract participants
@@ -291,7 +296,7 @@ class FirefliesObsidianSync:
         # Build YAML frontmatter
         frontmatter = {
             'date': date_formatted,
-            'datetime': datetime_formatted,
+            'Start Time': time_formatted,
             'title': meeting.get('title', 'Untitled Meeting'),
             'duration': self._format_duration(meeting.get('duration', 0)),
             'organizer': meeting.get('organizer_email', 'Unknown'),
@@ -395,19 +400,36 @@ class FirefliesObsidianSync:
             md_lines.append("")
 
             current_speaker = None
+            speaker_sentences = []
+            first_timestamp = None
+
             for sentence in meeting['sentences']:
                 speaker = sentence.get('speaker_name', 'Unknown')
-                text = sentence.get('text', '')
+                text = sentence.get('text', '').strip()
                 timestamp = self._format_timestamp(sentence.get('start_time', 0))
 
-                # Add speaker header if speaker changes
+                # If speaker changes, output previous speaker's text
                 if speaker != current_speaker:
-                    if current_speaker is not None:
-                        md_lines.append("")  # Add spacing between speakers
-                    md_lines.append(f"**{speaker}** `[{timestamp}]`")
-                    current_speaker = speaker
+                    # Output accumulated sentences from previous speaker
+                    if current_speaker is not None and speaker_sentences:
+                        md_lines.append(f"**{current_speaker}** `[{first_timestamp}]`")
+                        md_lines.append("")
+                        md_lines.append(" ".join(speaker_sentences))
+                        md_lines.append("")  # Blank line between speakers
+                        speaker_sentences = []
 
-                md_lines.append(text)
+                    current_speaker = speaker
+                    first_timestamp = timestamp
+
+                # Accumulate sentences for current speaker
+                if text:
+                    speaker_sentences.append(text)
+
+            # Don't forget to output the last speaker's sentences
+            if current_speaker is not None and speaker_sentences:
+                md_lines.append(f"**{current_speaker}** `[{first_timestamp}]`")
+                md_lines.append("")
+                md_lines.append(" ".join(speaker_sentences))
 
         md_lines.append("")
         md_lines.append("---")
