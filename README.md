@@ -403,7 +403,7 @@ Each meeting is saved as a Markdown file with:
 ```yaml
 ---
 date: 2025-11-20
-datetime: "2025-11-20 11:00"
+datetime: "2025-11-20 16:30 IST"
 title: Ritwik / Muhammed
 duration: 15m
 organizer: ritwik.gupta@feelvaleo.com
@@ -424,7 +424,7 @@ keywords:
 
 ### Meeting Details
 
-- Date and time (in UTC)
+- Date and time (in IST - Indian Standard Time)
 - Duration (in minutes)
 - Organizer email
 - Participants (email addresses)
@@ -488,14 +488,20 @@ This is normal if:
 
 **Note:** The script fetches the last 10 meetings and filters for today's date. If you have more than 10 meetings per day, some may not sync.
 
-### Time Zone Note
+### Time Zone
 
-Meeting times are displayed in **UTC** (Coordinated Universal Time):
-- **UTC time shown**: The raw time from the API
-- **Your local time**: Calculate based on your timezone
-- **Example**: `11:00 UTC` = `4:30 PM IST` (India Standard Time, UTC+5:30)
+Meeting times are displayed in **IST** (Indian Standard Time, UTC+5:30):
+- All times are automatically converted from UTC to IST
+- **Example**: Meeting at `11:00 UTC` is displayed as `16:30 IST` (4:30 PM)
+- Both YAML frontmatter and meeting details show IST time
 
-If you want to display times in your local timezone, you can modify the `_generate_markdown` function in `sync_fireflies.py`.
+**To change to a different timezone:**
+- Edit the `IST_OFFSET` constant in `sync_fireflies.py` (line 23)
+- For other timezones: `timedelta(hours=X, minutes=Y)`
+- Examples:
+  - EST (UTC-5): `timedelta(hours=-5)`
+  - PST (UTC-8): `timedelta(hours=-8)`
+  - JST (UTC+9): `timedelta(hours=9)`
 
 ### Permission denied when running script
 
@@ -615,6 +621,13 @@ For issues with:
 
 ## Changelog
 
+### Version 1.3 (2025-11-20)
+- **IST timezone support:** All times now displayed in IST (UTC+5:30)
+- Meeting times converted from UTC to Indian Standard Time
+- Both YAML frontmatter and meeting details show IST
+- Configurable timezone offset for other regions
+- Updated documentation with timezone examples
+
 ### Version 1.2 (2025-11-20)
 - **Full data support:** Restored all available meeting data
 - Added complete transcript with speaker names and timestamps
@@ -625,6 +638,7 @@ For issues with:
 - Added link to view full meeting on Fireflies
 - Works with Fireflies free plan
 - Updated cron examples for Mon-Fri 10 AM - 8 PM scheduling
+- Added launchd configuration for macOS automation
 
 ### Version 1.1 (2025-11-20)
 - **Breaking change:** Now fetches only today's meetings (not all meetings)

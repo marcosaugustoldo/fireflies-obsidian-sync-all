@@ -7,7 +7,7 @@ Fetches meeting transcripts from Fireflies.ai and saves them as Markdown files i
 import os
 import sys
 import json
-from datetime import datetime, time, timezone
+from datetime import datetime, time, timezone, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
 import requests
@@ -18,6 +18,9 @@ class FirefliesObsidianSync:
     """Synchronize Fireflies meetings to Obsidian vault."""
 
     FIREFLIES_API_URL = "https://api.fireflies.ai/graphql"
+
+    # IST timezone offset: UTC+5:30
+    IST_OFFSET = timedelta(hours=5, minutes=30)
 
     def __init__(self):
         """Initialize the sync service with environment variables."""
@@ -231,13 +234,16 @@ class FirefliesObsidianSync:
 
     def _sanitize_filename(self, title: str, date) -> str:
         """Create a safe filename from meeting title and date."""
-        # Parse the date (can be Unix timestamp or ISO string)
+        # Parse the date (can be Unix timestamp or ISO string) and convert to IST
         try:
             if isinstance(date, (int, float)):
-                dt = datetime.fromtimestamp(date / 1000, tz=timezone.utc)
+                dt_utc = datetime.fromtimestamp(date / 1000, tz=timezone.utc)
             else:
-                dt = datetime.fromisoformat(date.replace('Z', '+00:00'))
-            date_str = dt.strftime("%Y-%m-%d")
+                dt_utc = datetime.fromisoformat(date.replace('Z', '+00:00'))
+
+            # Convert to IST for the filename date
+            dt_ist = dt_utc + self.IST_OFFSET
+            date_str = dt_ist.strftime("%Y-%m-%d")
         except:
             date_str = "unknown-date"
 
@@ -252,15 +258,19 @@ class FirefliesObsidianSync:
 
     def _generate_markdown(self, meeting: Dict) -> str:
         """Generate Markdown content with YAML frontmatter for a meeting."""
-        # Parse date (can be Unix timestamp or ISO string)
+        # Parse date (can be Unix timestamp or ISO string) and convert to IST
         try:
             date_value = meeting['date']
             if isinstance(date_value, (int, float)):
-                dt = datetime.fromtimestamp(date_value / 1000, tz=timezone.utc)
+                dt_utc = datetime.fromtimestamp(date_value / 1000, tz=timezone.utc)
             else:
-                dt = datetime.fromisoformat(date_value.replace('Z', '+00:00'))
-            date_formatted = dt.strftime("%Y-%m-%d")
-            datetime_formatted = dt.strftime("%Y-%m-%d %H:%M")
+                dt_utc = datetime.fromisoformat(date_value.replace('Z', '+00:00'))
+
+            # Convert UTC to IST
+            dt_ist = dt_utc + self.IST_OFFSET
+
+            date_formatted = dt_ist.strftime("%Y-%m-%d")
+            datetime_formatted = dt_ist.strftime("%Y-%m-%d %H:%M IST")
         except:
             date_formatted = "Unknown"
             datetime_formatted = "Unknown"
