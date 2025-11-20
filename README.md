@@ -20,13 +20,15 @@ Automatically sync meeting transcripts and summaries from Fireflies.ai to your O
 
 ```
 fireflies_obsidian_sync/
-├── sync_fireflies.py      # Main sync script
-├── test_api.py           # API diagnostic tool
-├── requirements.txt       # Python dependencies
-├── .env                   # Your API keys (create from .env.example)
-├── .env.example          # Template for environment variables
-├── .gitignore            # Git ignore rules
-└── README.md             # This file
+├── sync_fireflies.py                      # Main sync script
+├── test_api.py                           # API diagnostic tool
+├── debug_meeting.py                      # Meeting data debug tool
+├── com.fireflies.obsidian.sync.plist     # launchd configuration template
+├── requirements.txt                       # Python dependencies
+├── .env                                   # Your API keys (create from .env.example)
+├── .env.example                          # Template for environment variables
+├── .gitignore                            # Git ignore rules
+└── README.md                             # This file
 
 Obsidian Vault/
 └── Valeo Health/
@@ -164,19 +166,194 @@ python sync_fireflies.py
 
 **Workaround:** The script fetches recent meetings and filters locally, so date filtering still works without a paid plan.
 
-## Automation with Cron (macOS)
+## Automation Options for macOS
 
 Since the script only syncs today's meetings and is idempotent, you can safely schedule it to run multiple times per day to ensure timely syncing.
 
-### Step 1: Edit Your Crontab
+### Option 1: launchd (Recommended for macOS)
+
+launchd is macOS's native scheduling system and is more reliable than cron. It automatically handles system restarts and provides better logging.
+
+#### Step 1: Create the launchd plist file
+
+**Option A: Copy the included template (easiest)**
+
+```bash
+cp com.fireflies.obsidian.sync.plist ~/Library/LaunchAgents/
+```
+
+**Option B: Create manually**
+
+Create a file at `~/Library/LaunchAgents/com.fireflies.obsidian.sync.plist`:
+
+```bash
+nano ~/Library/LaunchAgents/com.fireflies.obsidian.sync.plist
+```
+
+Paste this configuration (update paths to match your setup):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.fireflies.obsidian.sync</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>cd /Users/ritwik/valeo-projects/fireflies_obsidian_sync && source venv/bin/activate && python3 sync_fireflies.py</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>11</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>12</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>13</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>17</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>19</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>11</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>12</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>13</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>17</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>19</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>11</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>12</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>13</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>17</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>19</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>11</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>12</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>13</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>17</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>19</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>11</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>12</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>13</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>17</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>19</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>
+    </array>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/fireflies_sync.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/fireflies_sync_error.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
+```
+
+**Configuration notes:**
+- `Weekday`: 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday
+- Runs every hour from 10 AM to 8 PM (10:00-20:00)
+- Logs to `/tmp/fireflies_sync.log` and `/tmp/fireflies_sync_error.log`
+- Update the path in `ProgramArguments` to match your project location
+
+#### Step 2: Load the launchd job
+
+```bash
+# Load the job
+launchctl load ~/Library/LaunchAgents/com.fireflies.obsidian.sync.plist
+
+# Start it immediately (optional)
+launchctl start com.fireflies.obsidian.sync
+```
+
+#### Step 3: Verify it's running
+
+```bash
+# Check if loaded
+launchctl list | grep fireflies
+
+# View logs
+tail -f /tmp/fireflies_sync.log
+tail -f /tmp/fireflies_sync_error.log
+```
+
+#### Managing the launchd job
+
+```bash
+# Stop the job
+launchctl stop com.fireflies.obsidian.sync
+
+# Unload (disable) the job
+launchctl unload ~/Library/LaunchAgents/com.fireflies.obsidian.sync.plist
+
+# Reload after making changes
+launchctl unload ~/Library/LaunchAgents/com.fireflies.obsidian.sync.plist
+launchctl load ~/Library/LaunchAgents/com.fireflies.obsidian.sync.plist
+```
+
+#### Troubleshooting launchd
+
+```bash
+# Check for errors
+cat /tmp/fireflies_sync_error.log
+
+# Test the command manually
+cd /Users/ritwik/valeo-projects/fireflies_obsidian_sync && source venv/bin/activate && python3 sync_fireflies.py
+
+# Check launchd status
+launchctl print gui/$(id -u)/com.fireflies.obsidian.sync
+```
+
+**Advantages of launchd over cron:**
+- ✅ Automatically reruns if system was asleep
+- ✅ Better logging and error handling
+- ✅ Survives system reboots
+- ✅ Native macOS integration
+- ✅ More reliable scheduling
+
+---
+
+### Option 2: Cron (Alternative)
+
+If you prefer cron, here's how to set it up:
+
+#### Edit Your Crontab
 
 ```bash
 crontab -e
 ```
 
-### Step 2: Add the Cron Job
+#### Add the Cron Job
 
-**Recommended: Run hourly Mon-Fri from 10 AM to 8 PM**
+**Run hourly Mon-Fri from 10 AM to 8 PM:**
 
 ```cron
 0 10-20 * * 1-5 cd /Users/ritwik/valeo-projects/fireflies_obsidian_sync && source venv/bin/activate && python3 sync_fireflies.py >> /tmp/fireflies_sync.log 2>&1
@@ -187,9 +364,9 @@ crontab -e
 - `source venv/bin/activate`: Activates your virtual environment
 - `>> /tmp/fireflies_sync.log 2>&1`: Logs all output to `/tmp/fireflies_sync.log`
 
-**Important:** Update the path (`/Users/ritwik/valeo-projects/fireflies_obsidian_sync`) to match your actual project location.
+**Important:** Update the path to match your actual project location.
 
-### Other Scheduling Options
+#### Other Cron Scheduling Options
 
 ```cron
 # Every 2 hours during work day (Mon-Fri)
@@ -205,15 +382,13 @@ crontab -e
 0 9 * * * cd /path && source venv/bin/activate && python3 sync_fireflies.py >> /tmp/fireflies_sync.log 2>&1
 ```
 
-**Note:** Since the script only fetches today's meetings, running it multiple times is safe and efficient.
-
-### View Cron Logs
-
-Check the sync log:
+#### View Cron Logs
 
 ```bash
 tail -f /tmp/fireflies_sync.log
 ```
+
+**Note:** Since the script only fetches today's meetings, running it multiple times is safe and efficient.
 
 ## Output Format
 
