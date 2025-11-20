@@ -15,7 +15,7 @@ API_KEY = os.getenv("FF_API_KEY")
 API_URL = "https://api.fireflies.ai/graphql"
 
 if not API_KEY:
-    print("❌ FF_API_KEY not set in .env file")
+    print("ERROR: FF_API_KEY not set in .env file")
     sys.exit(1)
 
 # Calculate today's date range
@@ -61,19 +61,19 @@ try:
     if response.status_code == 200:
         data = response.json()
         if "errors" in data:
-            print(f"❌ GraphQL Errors: {data['errors']}")
+            print(f"[ERROR] GraphQL Errors: {data['errors']}")
         elif "data" in data and data["data"].get("transcripts"):
             transcripts = data["data"]["transcripts"]
-            print(f"✅ Success! Found {len(transcripts)} transcript(s)")
+            print(f"[SUCCESS] Found {len(transcripts)} transcript(s)")
             if transcripts:
                 print(f"   First transcript: {transcripts[0].get('title', 'No title')}")
         else:
-            print(f"⚠️  Empty or unexpected response: {data}")
+            print(f"[WARNING] Empty or unexpected response: {data}")
     else:
-        print(f"❌ Failed with status {response.status_code}")
+        print(f"[ERROR] Failed with status {response.status_code}")
         print(f"Response: {response.text[:500]}")
 except Exception as e:
-    print(f"❌ Exception: {e}")
+    print(f"[ERROR] Exception: {e}")
 
 print()
 
@@ -106,16 +106,16 @@ try:
     if response.status_code == 200:
         data = response.json()
         if "errors" in data:
-            print(f"❌ GraphQL Errors: {data['errors']}")
+            print(f"[ERROR] GraphQL Errors: {data['errors']}")
         elif "data" in data:
-            print(f"✅ Success!")
+            print(f"[SUCCESS]")
         else:
-            print(f"⚠️  Unexpected response: {data}")
+            print(f"[WARNING] Unexpected response: {data}")
     else:
-        print(f"❌ Failed with status {response.status_code}")
+        print(f"[ERROR] Failed with status {response.status_code}")
         print(f"Response: {response.text[:500]}")
 except Exception as e:
-    print(f"❌ Exception: {e}")
+    print(f"[ERROR] Exception: {e}")
 
 print()
 
@@ -150,19 +150,19 @@ try:
     if response.status_code == 200:
         data = response.json()
         if "errors" in data:
-            print(f"❌ GraphQL Errors: {data['errors']}")
+            print(f"[ERROR] GraphQL Errors: {data['errors']}")
         elif "data" in data:
-            print(f"✅ Success!")
+            print(f"[SUCCESS]")
             transcripts = data.get("data", {}).get("transcripts", [])
             if transcripts and transcripts[0].get("summary"):
                 print(f"   Has summary: Yes")
         else:
-            print(f"⚠️  Unexpected response: {data}")
+            print(f"[WARNING] Unexpected response: {data}")
     else:
-        print(f"❌ Failed with status {response.status_code}")
+        print(f"[ERROR] Failed with status {response.status_code}")
         print(f"Response: {response.text[:500]}")
 except Exception as e:
-    print(f"❌ Exception: {e}")
+    print(f"[ERROR] Exception: {e}")
 
 print()
 
@@ -199,22 +199,22 @@ try:
     if response.status_code == 200:
         data = response.json()
         if "errors" in data:
-            print(f"❌ GraphQL Errors: {data['errors']}")
+            print(f"[ERROR] GraphQL Errors: {data['errors']}")
         elif "data" in data:
             transcripts = data.get("data", {}).get("transcripts", [])
-            print(f"✅ Success! Found {len(transcripts)} meeting(s) for today")
+            print(f"[SUCCESS] Found {len(transcripts)} meeting(s) for today")
             if len(transcripts) == 0:
                 print("   Note: This is normal if you have no meetings today")
             else:
                 for t in transcripts:
                     print(f"   - {t.get('title', 'Untitled')}")
         else:
-            print(f"⚠️  Unexpected response: {data}")
+            print(f"[WARNING] Unexpected response: {data}")
     else:
-        print(f"❌ Failed with status {response.status_code}")
+        print(f"[ERROR] Failed with status {response.status_code}")
         print(f"Response: {response.text[:500]}")
 except Exception as e:
-    print(f"❌ Exception: {e}")
+    print(f"[ERROR] Exception: {e}")
 
 print()
 print("=" * 60)
@@ -222,6 +222,6 @@ print("Diagnostic complete!")
 print("=" * 60)
 print()
 print("Summary:")
-print("  • If all tests passed, your API connection is working correctly")
-print("  • If Test 4 shows 0 meetings, that's normal if you have no meetings today")
-print("  • Run 'python sync_fireflies.py' to sync today's meetings to Obsidian")
+print("  - If all tests passed, your API connection is working correctly")
+print("  - If Test 4 shows 0 meetings, that's normal if you have no meetings today")
+print("  - Run 'python sync_fireflies.py' to sync today's meetings to Obsidian")

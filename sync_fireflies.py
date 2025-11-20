@@ -119,7 +119,7 @@ class FirefliesObsidianSync:
 
             # Check if we got a response
             if response.status_code != 200:
-                print(f"\n❌ API returned status code {response.status_code}")
+                print(f"\nAPI returned status code {response.status_code}")
                 print(f"Response body: {response.text[:500]}")
 
                 # Try to parse error details from response
@@ -158,7 +158,7 @@ class FirefliesObsidianSync:
             all_transcripts = data.get("data", {}).get("transcripts", [])
 
             if all_transcripts is None:
-                print(f"\n⚠️  Warning: transcripts field is None. Full response: {data}")
+                print(f"\nWarning: transcripts field is None. Full response: {data}")
                 all_transcripts = []
 
             print(f"Fetched {len(all_transcripts)} recent meetings")
@@ -180,9 +180,9 @@ class FirefliesObsidianSync:
                     # Check if meeting is from today
                     if today_start <= meeting_date <= today_end:
                         today_transcripts.append(transcript)
-                        print(f"  ✓ Found today's meeting: {transcript.get('title', 'Unknown')}")
+                        print(f"  > Found today's meeting: {transcript.get('title', 'Unknown')}")
                 except Exception as e:
-                    print(f"  ⚠️  Warning: Could not parse date for meeting {transcript.get('title', 'Unknown')}: {e}")
+                    print(f"  > Warning: Could not parse date for meeting {transcript.get('title', 'Unknown')}: {e}")
                     continue
 
             print(f"Found {len(today_transcripts)} meeting(s) from today")
@@ -451,7 +451,7 @@ class FirefliesObsidianSync:
 
         # Skip if file already exists (idempotent behavior)
         if filepath.exists():
-            print(f"  ⏭️  Already synced: {filename}")
+            print(f"  [SKIP] Already synced: {filename}")
             return False
 
         # Generate and save markdown
@@ -459,10 +459,10 @@ class FirefliesObsidianSync:
 
         try:
             filepath.write_text(markdown_content, encoding='utf-8')
-            print(f"  ✅ Saved: {filename}")
+            print(f"  [SAVED] {filename}")
             return True
         except Exception as e:
-            print(f"  ❌ Failed to save {filename}: {e}")
+            print(f"  [ERROR] Failed to save {filename}: {e}")
             return False
 
     def sync(self):
@@ -474,9 +474,9 @@ class FirefliesObsidianSync:
         today = datetime.now().strftime("%Y-%m-%d")
 
         print("=" * 60)
-        print("Fireflies.ai → Obsidian Sync")
+        print("Fireflies.ai -> Obsidian Sync")
         print("=" * 60)
-        print(f"📅 Syncing meetings for: {today}")
+        print(f"Syncing meetings for: {today}")
         print()
 
         try:
@@ -484,11 +484,11 @@ class FirefliesObsidianSync:
             meetings = self.fetch_meetings()
 
             if not meetings:
-                print("✓ No meetings found for today.")
+                print("No meetings found for today.")
                 print()
                 print("This is normal if:")
-                print("  • You have no meetings scheduled today")
-                print("  • Your meetings haven't been processed by Fireflies yet")
+                print("  - You have no meetings scheduled today")
+                print("  - Your meetings haven't been processed by Fireflies yet")
                 return
 
             print()
@@ -508,14 +508,14 @@ class FirefliesObsidianSync:
             # Summary
             print()
             print("=" * 60)
-            print(f"✓ Sync complete!")
-            print(f"  • New meetings: {saved_count}")
-            print(f"  • Already synced: {skipped_count}")
-            print(f"  • Location: {self.notes_path}")
+            print(f"Sync complete!")
+            print(f"  - New meetings: {saved_count}")
+            print(f"  - Already synced: {skipped_count}")
+            print(f"  - Location: {self.notes_path}")
             print("=" * 60)
 
         except Exception as e:
-            print(f"\n❌ Error during sync: {e}", file=sys.stderr)
+            print(f"\nError during sync: {e}", file=sys.stderr)
             sys.exit(1)
 
 
@@ -525,7 +525,7 @@ def main():
         sync_service = FirefliesObsidianSync()
         sync_service.sync()
     except Exception as e:
-        print(f"❌ Error: {e}", file=sys.stderr)
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
 

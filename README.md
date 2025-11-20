@@ -150,7 +150,7 @@ python sync_fireflies.py
 
 ### What Data is Included
 
-**✅ Available with Free Fireflies Plan:**
+**Available with Free Fireflies Plan:**
 - Meeting title, date, duration
 - Organizer and participant emails
 - Full transcript with speaker names and timestamps
@@ -159,7 +159,7 @@ python sync_fireflies.py
 - Action items organized by assignee
 - Link to view full meeting on Fireflies.ai
 
-**❌ Requires Paid Fireflies Plan:**
+**Requires Paid Fireflies Plan:**
 - `audio_url` - Direct audio file download (requires Pro or higher)
 - `video_url` - Direct video file download (requires Business or higher)
 - Date filtering via API (requires Business or higher)
@@ -379,11 +379,11 @@ launchctl print gui/$(id -u)/com.fireflies.obsidian.sync
 ```
 
 **Advantages of launchd over cron:**
-- ✅ Automatically reruns if system was asleep
-- ✅ Better logging and error handling
-- ✅ Survives system reboots
-- ✅ Native macOS integration
-- ✅ More reliable scheduling
+- Automatically reruns if system was asleep
+- Better logging and error handling
+- Survives system reboots
+- Native macOS integration
+- More reliable scheduling
 
 ---
 
@@ -555,9 +555,9 @@ chmod +x sync_fireflies.py
 
 Here are some ideas to enhance this integration:
 
-### ✅ 1. Daily Incremental Sync (Implemented)
+### 1. Daily Incremental Sync (Implemented)
 
-**Status:** ✅ Complete
+**Status:** Complete
 - Script now fetches only today's meetings using date filters
 - Idempotent operation prevents duplicates
 - Efficient and safe for multiple daily runs
@@ -658,40 +658,3 @@ For issues with:
 - **This script:** Check the troubleshooting section above
 - **Fireflies API:** Visit [Fireflies API Documentation](https://docs.fireflies.ai/)
 - **Obsidian:** Visit [Obsidian Help](https://help.obsidian.md/)
-
-## Changelog
-
-### Version 1.3 (2025-11-20)
-- **IST timezone support:** All times now displayed in IST (UTC+5:30)
-- Meeting times converted from UTC to Indian Standard Time
-- Both YAML frontmatter and meeting details show IST
-- Configurable timezone offset for other regions
-- Updated documentation with timezone examples
-
-### Version 1.2 (2025-11-20)
-- **Full data support:** Restored all available meeting data
-- Added complete transcript with speaker names and timestamps
-- Added action items organized by assignee
-- Added comprehensive AI-generated summary with keywords
-- Fixed duration parsing (now shows correct duration in minutes)
-- Improved participant handling
-- Added link to view full meeting on Fireflies
-- Works with Fireflies free plan
-- Updated cron examples for Mon-Fri 10 AM - 8 PM scheduling
-- Added launchd configuration for macOS automation
-
-### Version 1.1 (2025-11-20)
-- **Breaking change:** Now fetches only today's meetings (not all meetings)
-- Added idempotent operation - safe to run multiple times
-- Improved error messages and debugging
-- Local date filtering (fetches last 10 meetings, filters for today)
-- Removed MAX_MEETINGS and DAYS_LOOKBACK configuration options
-- Enhanced documentation with daily sync examples
-- Added test_api.py and debug_meeting.py diagnostic tools
-
-### Version 1.0 (2025-11-20)
-- Initial release
-- GraphQL API integration
-- YAML frontmatter support
-- Basic meeting metadata
-- Duplicate prevention
