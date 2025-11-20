@@ -55,15 +55,35 @@ class FirefliesObsidianSync:
 
         # GraphQL query to fetch recent transcripts (no date filtering)
         # Fetch last 10 meetings and filter for today locally
-        # Note: Only requesting basic fields available on free plan
+        # Note: audio_url and video_url require paid plans
         query = """
         query Transcripts($limit: Int) {
           transcripts(limit: $limit) {
             id
             title
             date
+            dateString
             duration
             organizer_email
+            participants
+            meeting_attendees {
+              displayName
+              email
+            }
+            summary {
+              overview
+              keywords
+              action_items
+              outline
+              gist
+            }
+            sentences {
+              text
+              speaker_name
+              start_time
+              end_time
+            }
+            transcript_url
           }
         }
         """
@@ -177,13 +197,27 @@ class FirefliesObsidianSync:
         except requests.exceptions.RequestException as e:
             raise Exception(f"Failed to fetch meetings from Fireflies API: {e}")
 
-    def _format_duration(self, seconds: int) -> str:
-        """Convert duration in seconds to human-readable format."""
-        if not seconds:
+    def _format_duration(self, duration_value) -> str:
+        """Convert duration to human-readable format.
+
+        Args:
+            duration_value: Can be seconds (int) or minutes (float)
+        """
+        if not duration_value:
             return "Unknown"
 
-        hours = seconds // 3600
-        minutes = (seconds % 3600) // 60
+        # If it's a float, it's likely in minutes (based on API response)
+        if isinstance(duration_value, float):
+            minutes = int(duration_value)
+            if minutes >= 60:
+                hours = minutes // 60
+                mins = minutes % 60
+                return f"{hours}h {mins}m"
+            return f"{minutes}m"
+
+        # If it's an int, treat as seconds
+        hours = duration_value // 3600
+        minutes = (duration_value % 3600) // 60
 
         if hours > 0:
             return f"{hours}h {minutes}m"
@@ -235,8 +269,14 @@ class FirefliesObsidianSync:
         participants = []
         if meeting.get('meeting_attendees'):
             for attendee in meeting['meeting_attendees']:
-                name = attendee.get('displayName', attendee.get('email', 'Unknown'))
-                participants.append(name)
+                name = attendee.get('displayName') or attendee.get('email') or 'Unknown'
+                if name and name != 'Unknown':
+                    participants.append(name)
+        elif meeting.get('participants'):
+            # Fallback to participants list (emails)
+            for participant in meeting['participants']:
+                if participant:
+                    participants.append(participant)
 
         # Build YAML frontmatter
         frontmatter = {
@@ -290,11 +330,9 @@ class FirefliesObsidianSync:
         if participants:
             md_lines.append(f"- **Participants:** {', '.join(participants)}")
 
-        # Add audio/video links if available
-        if meeting.get('audio_url'):
-            md_lines.append(f"- **Audio Recording:** [Listen]({meeting['audio_url']})")
-        if meeting.get('video_url'):
-            md_lines.append(f"- **Video Recording:** [Watch]({meeting['video_url']})")
+        # Add transcript link if available
+        if meeting.get('transcript_url'):
+            md_lines.append(f"- **Transcript:** [View on Fireflies]({meeting['transcript_url']})")
 
         md_lines.append("")
 
@@ -314,8 +352,24 @@ class FirefliesObsidianSync:
             if summary.get('action_items'):
                 md_lines.append("### Action Items")
                 md_lines.append("")
-                for item in summary['action_items']:
-                    md_lines.append(f"- [ ] {item}")
+                # Action items is a string with newlines, parse it
+                action_items_text = summary['action_items']
+                if isinstance(action_items_text, str):
+                    # Split by double newlines to get sections
+                    lines = action_items_text.strip().split('\n')
+                    for line in lines:
+                        line = line.strip()
+                        if line and not line.startswith('**'):
+                            # Skip header lines with **Name**
+                            if line and line[0].isalpha():
+                                md_lines.append(f"- [ ] {line}")
+                        elif line.startswith('**'):
+                            # Add name headers as bold text
+                            md_lines.append(f"\n{line}")
+                else:
+                    # If it's a list (old format)
+                    for item in action_items_text:
+                        md_lines.append(f"- [ ] {item}")
                 md_lines.append("")
 
             if summary.get('outline'):
