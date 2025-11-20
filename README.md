@@ -208,7 +208,7 @@ Paste this configuration (update paths to match your setup):
     <array>
         <string>/bin/bash</string>
         <string>-c</string>
-        <string>cd /Users/username/projects/fireflies_obsidian_sync && source venv/bin/activate && python3 sync_fireflies.py</string>
+        <string>cd /Users/username/projects/fireflies_obsidian_sync &amp;&amp; source venv/bin/activate &amp;&amp; python3 sync_fireflies.py</string>
     </array>
 
     <key>StartCalendarInterval</key>
