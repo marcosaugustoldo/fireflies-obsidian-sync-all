@@ -7,7 +7,7 @@ Fetches meeting transcripts from Fireflies.ai and saves them as Markdown files i
 import os
 import sys
 import json
-from datetime import datetime
+from datetime import datetime, time, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 import requests
@@ -26,8 +26,6 @@ class FirefliesObsidianSync:
         self.api_key = os.getenv("FF_API_KEY")
         self.vault_path = os.getenv("OBSIDIAN_VAULT_PATH")
         self.subfolder = os.getenv("FIREFLIES_SUBFOLDER", "Fireflies Meetings")
-        self.max_meetings = os.getenv("MAX_MEETINGS")
-        self.days_lookback = os.getenv("DAYS_LOOKBACK")
 
         self._validate_config()
 
@@ -45,12 +43,24 @@ class FirefliesObsidianSync:
             raise ValueError(f"Obsidian vault path does not exist: {self.vault_path}")
 
     def fetch_meetings(self) -> List[Dict]:
-        """Fetch meetings from Fireflies API using GraphQL."""
-        # GraphQL query to fetch transcripts
-        # Note: Using a more conservative query structure to avoid 500 errors
+        """Fetch meetings from Fireflies API using GraphQL.
+
+        Fetches only meetings that occurred today (based on local timezone).
+        """
+        # Calculate today's date range in ISO 8601 format
+        # Get start of today (00:00:00) in UTC
+        now = datetime.now(timezone.utc)
+        today_start = datetime.combine(now.date(), time.min, tzinfo=timezone.utc)
+        today_end = datetime.combine(now.date(), time.max, tzinfo=timezone.utc)
+
+        # Format as ISO 8601 strings
+        from_date = today_start.isoformat()
+        to_date = today_end.isoformat()
+
+        # GraphQL query to fetch transcripts with date filtering
         query = """
-        query Transcripts($limit: Int) {
-          transcripts(limit: $limit) {
+        query Transcripts($fromDate: String, $toDate: String) {
+          transcripts(fromDate: $fromDate, toDate: $toDate) {
             id
             title
             date
@@ -78,12 +88,10 @@ class FirefliesObsidianSync:
         }
         """
 
-        variables = {}
-        if self.max_meetings:
-            variables["limit"] = int(self.max_meetings)
-        else:
-            # Default to 10 if not specified to avoid large queries
-            variables["limit"] = 10
+        variables = {
+            "fromDate": from_date,
+            "toDate": to_date
+        }
 
         headers = {
             "Content-Type": "application/json",
@@ -96,8 +104,8 @@ class FirefliesObsidianSync:
         }
 
         try:
-            print(f"Fetching meetings from Fireflies API...")
-            print(f"  → Limit: {variables.get('limit', 'default')}")
+            print(f"Fetching today's meetings from Fireflies API...")
+            print(f"  → Date range: {today_start.strftime('%Y-%m-%d')} (UTC)")
 
             response = requests.post(
                 self.FIREFLIES_API_URL,
@@ -139,7 +147,7 @@ class FirefliesObsidianSync:
                 error_msg += "\n  → Check that your FF_API_KEY is correct"
             elif e.response.status_code == 500:
                 error_msg += "\n  → Server error. The API may be temporarily unavailable or the query may be invalid"
-                error_msg += f"\n  → Try setting MAX_MEETINGS=5 in your .env file to fetch fewer meetings"
+                error_msg += f"\n  → The script only fetches today's meetings. Check if you have meetings scheduled for today."
             raise Exception(error_msg)
         except requests.exceptions.RequestException as e:
             raise Exception(f"Failed to fetch meetings from Fireflies API: {e}")
@@ -312,16 +320,20 @@ class FirefliesObsidianSync:
         return "\n".join(md_lines)
 
     def save_meeting(self, meeting: Dict) -> bool:
-        """Save a meeting as a Markdown file. Returns True if saved, False if skipped."""
+        """Save a meeting as a Markdown file. Returns True if saved, False if skipped.
+
+        This method is idempotent - it will not overwrite existing meeting files.
+        If a file with the same name already exists, it will be skipped.
+        """
         filename = self._sanitize_filename(
             meeting.get('title', 'Untitled'),
             meeting.get('date', '')
         )
         filepath = self.notes_path / filename
 
-        # Skip if file already exists
+        # Skip if file already exists (idempotent behavior)
         if filepath.exists():
-            print(f"  ⏭️  Skipping (already exists): {filename}")
+            print(f"  ⏭️  Already synced: {filename}")
             return False
 
         # Generate and save markdown
@@ -336,10 +348,17 @@ class FirefliesObsidianSync:
             return False
 
     def sync(self):
-        """Main sync process."""
+        """Main sync process.
+
+        Fetches today's meetings from Fireflies and syncs them to Obsidian.
+        This operation is idempotent - running multiple times will not create duplicates.
+        """
+        today = datetime.now().strftime("%Y-%m-%d")
+
         print("=" * 60)
         print("Fireflies.ai → Obsidian Sync")
         print("=" * 60)
+        print(f"📅 Syncing meetings for: {today}")
         print()
 
         try:
@@ -347,11 +366,15 @@ class FirefliesObsidianSync:
             meetings = self.fetch_meetings()
 
             if not meetings:
-                print("No meetings found.")
+                print("✓ No meetings found for today.")
+                print()
+                print("This is normal if:")
+                print("  • You have no meetings scheduled today")
+                print("  • Your meetings haven't been processed by Fireflies yet")
                 return
 
             print()
-            print(f"Processing {len(meetings)} meetings...")
+            print(f"Processing {len(meetings)} meeting(s)...")
             print()
 
             # Save each meeting
@@ -367,9 +390,9 @@ class FirefliesObsidianSync:
             # Summary
             print()
             print("=" * 60)
-            print(f"Sync complete!")
-            print(f"  • Saved: {saved_count} new meetings")
-            print(f"  • Skipped: {skipped_count} existing meetings")
+            print(f"✓ Sync complete!")
+            print(f"  • New meetings: {saved_count}")
+            print(f"  • Already synced: {skipped_count}")
             print(f"  • Location: {self.notes_path}")
             print("=" * 60)
 

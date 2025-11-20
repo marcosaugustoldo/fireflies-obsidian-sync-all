@@ -4,14 +4,16 @@ Automatically sync meeting transcripts and summaries from Fireflies.ai to your O
 
 ## Features
 
-- Fetches meetings from Fireflies.ai using the GraphQL API
-- Generates Markdown files with rich YAML frontmatter
-- Includes meeting metadata: date, duration, participants, organizer
-- Extracts summary, keywords, action items, and key points
-- Full transcript with speaker names and timestamps
-- Links to audio/video recordings
-- Skips meetings that already exist (no duplicates)
-- Clean, Obsidian-friendly formatting
+- **Automatic daily sync**: Fetches only today's meetings from Fireflies.ai
+- **Idempotent operation**: Safe to run multiple times - no duplicates created
+- **Rich Markdown output**: Formatted notes with YAML frontmatter
+- **Complete meeting data**:
+  - Meeting metadata (date, duration, participants, organizer)
+  - AI-generated summary, keywords, and key points
+  - Action items as checkable tasks
+  - Full transcript with speaker names and timestamps
+  - Links to audio/video recordings
+- **Obsidian-optimized**: Clean formatting designed for Obsidian vaults
 
 ## Project Structure
 
@@ -82,15 +84,12 @@ FF_API_KEY=your_actual_api_key_here
 # Obsidian Vault Configuration
 OBSIDIAN_VAULT_PATH=/Users/ritwik/Documents/Obsidian Vault/Valeo Health
 FIREFLIES_SUBFOLDER=Fireflies Meetings
-
-# Optional: Limit the number of meetings to fetch (leave empty for all)
-# MAX_MEETINGS=50
-
-# Optional: Only fetch meetings from the last N days (leave empty for all)
-# DAYS_LOOKBACK=30
 ```
 
-**Important:** Replace `your_actual_api_key_here` with your real Fireflies API key.
+**Important:**
+- Replace `your_actual_api_key_here` with your real Fireflies API key
+- Update the `OBSIDIAN_VAULT_PATH` to point to your Obsidian vault location
+- The script automatically fetches only today's meetings
 
 ### 4. Run the Sync Script
 
@@ -108,17 +107,45 @@ python3 sync_fireflies.py
 
 The script will:
 1. Connect to the Fireflies API
-2. Fetch your meetings
-3. Create Markdown files in your Obsidian vault
-4. Show a summary of what was saved
+2. Fetch meetings that occurred today
+3. Create Markdown files for new meetings in your Obsidian vault
+4. Skip any meetings that were already synced (no duplicates)
+5. Show a summary of what was saved
 
 ### 5. Check Your Obsidian Vault
 
 Open Obsidian and navigate to `Fireflies Meetings/` to see your synced meeting notes.
 
+## How It Works
+
+### Daily Sync Behavior
+
+The script is designed to sync **only today's meetings**:
+- Each time you run the script, it fetches meetings from the current day
+- Perfect for automated daily syncing via cron jobs
+- Meetings from previous days are not re-fetched
+
+### Idempotent Operation
+
+The sync is **completely idempotent**:
+- Running the script multiple times is safe and will not create duplicates
+- If a meeting note already exists, it will be skipped
+- You can run the script as often as you like without worrying about data duplication
+- Useful if you want to sync multiple times per day to catch meetings as they're processed
+
+**Example:**
+```bash
+# Run the script at 10 AM - syncs morning meetings
+python sync_fireflies.py
+
+# Run again at 5 PM - syncs afternoon meetings
+# Morning meetings are skipped (already synced)
+python sync_fireflies.py
+```
+
 ## Automation with Cron (macOS)
 
-To automatically sync meetings every day, you can set up a cron job.
+Since the script only syncs today's meetings and is idempotent, you can safely schedule it to run multiple times per day to ensure timely syncing.
 
 ### Step 1: Make the Script Executable
 
@@ -134,20 +161,28 @@ crontab -e
 
 ### Step 3: Add a Cron Job
 
-Add this line to run the sync every day at 9 AM:
+**Recommended: Sync every 2 hours during work hours**
 
 ```cron
-0 9 * * * cd /Users/ritwik/valeo-projects/fireflies_obsidian_sync && /usr/bin/python3 sync_fireflies.py >> /tmp/fireflies_sync.log 2>&1
+0 9,11,13,15,17 * * * cd /Users/ritwik/valeo-projects/fireflies_obsidian_sync && /usr/bin/python3 sync_fireflies.py >> /tmp/fireflies_sync.log 2>&1
+```
+
+**Or sync once at end of day:**
+
+```cron
+0 18 * * * cd /Users/ritwik/valeo-projects/fireflies_obsidian_sync && /usr/bin/python3 sync_fireflies.py >> /tmp/fireflies_sync.log 2>&1
 ```
 
 **Adjust the path** to match your actual project location and Python installation.
 
-### Common Cron Schedules
+### Other Scheduling Options
 
-- Every hour: `0 * * * *`
-- Every 6 hours: `0 */6 * * *`
-- Twice daily (9 AM and 6 PM): `0 9,18 * * *`
-- Every Monday at 8 AM: `0 8 * * 1`
+- Every hour: `0 * * * *` (catches meetings quickly)
+- Every 3 hours: `0 */3 * * *` (balanced approach)
+- Twice daily (morning and evening): `0 9,17 * * *`
+- Once at 6 PM: `0 18 * * *` (end of day sync)
+
+**Note:** Since the script only fetches today's meetings, running it multiple times is safe and efficient.
 
 ### View Cron Logs
 
@@ -223,10 +258,17 @@ Check that the path in your `.env` file is correct and the folder exists.
 - Check your internet connection
 - Ensure your Fireflies account has API access enabled
 
-### No meetings found
+### "No meetings found for today"
 
-- Log in to Fireflies.ai and verify you have recorded meetings
-- Check if you've set `MAX_MEETINGS` or `DAYS_LOOKBACK` too restrictively
+This is normal if:
+- You have no meetings scheduled for today
+- Today's meetings haven't been processed by Fireflies yet (there's typically a delay)
+- Your meetings were on different days
+
+**To sync meetings from a different day:**
+- The script only syncs today's meetings by design
+- Run the script on the day you want to sync meetings for
+- Or modify the date range in the script if needed
 
 ### Permission denied when running script
 
@@ -240,15 +282,12 @@ chmod +x sync_fireflies.py
 
 Here are some ideas to enhance this integration:
 
-### 1. Incremental Sync
+### ✅ 1. Daily Incremental Sync (Implemented)
 
-**Current:** Fetches all meetings every time
-**Enhancement:** Track the last sync timestamp and only fetch new meetings
-
-```python
-# Store last sync time in a .last_sync file
-# Use date filters in GraphQL query
-```
+**Status:** ✅ Complete
+- Script now fetches only today's meetings using date filters
+- Idempotent operation prevents duplicates
+- Efficient and safe for multiple daily runs
 
 ### 2. Separate Summary and Transcript Files
 
@@ -348,6 +387,15 @@ For issues with:
 - **Obsidian:** Visit [Obsidian Help](https://help.obsidian.md/)
 
 ## Changelog
+
+### Version 1.1 (2025-11-20)
+- **Breaking change:** Now fetches only today's meetings (not all meetings)
+- Added idempotent operation - safe to run multiple times
+- Improved error messages and debugging
+- Added date filtering using fromDate/toDate API parameters
+- Removed MAX_MEETINGS and DAYS_LOOKBACK configuration options
+- Enhanced documentation with daily sync examples
+- Added test_api.py diagnostic tool
 
 ### Version 1.0 (2025-11-20)
 - Initial release
