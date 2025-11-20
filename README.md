@@ -179,6 +179,10 @@ launchd is macOS's native scheduling system and is more reliable than cron. It a
 **Option A: Copy the included template (easiest)**
 
 ```bash
+# Create the directory if it doesn't exist
+mkdir -p ~/Library/LaunchAgents
+
+# Copy the plist file
 cp com.fireflies.obsidian.sync.plist ~/Library/LaunchAgents/
 ```
 
