@@ -19,8 +19,6 @@ However, to scale the script's reliability to a production level, fundamental ar
 * **YAML Frontmatter:** Natively prepares the generated notes for Obsidian's *Dataview* plugin.
 * **Secure Isolation:** Code structured to run inside Python virtual environments (`venv`), making it ideal for immutable systems like Fedora Atomic/Silverblue.
 
----
-
 ## 🛠️ Installation (Linux / Systemd Focus)
 
 The following guide assumes deployment on a modern Linux environment (utilizing `venv` to avoid polluting the root system).
@@ -63,8 +61,6 @@ The initial execution will download all recent meetings and create the state fil
 
 ```
 
----
-
 ## 🕒 Automation with Systemd On Linux (Cron Replacement)
 
 To ensure continuous, silent execution, create a Systemd user service.
@@ -106,6 +102,3 @@ systemctl --user enable --now fireflies-sync.timer
 ```
 
 Your data pipeline is now fault-tolerant and will operate passively in the background.
-links no topo de cada arquivo apontando um para o outro (ex: `[Read in English](README-en.md) | [Leia em Português](README.md)`).
-
-Você quer que eu estruture os comandos para adicionar essa versão em inglês lado a lado com a versão em português no seu repositório?
