@@ -69,8 +69,6 @@ python sync_fireflies.py
 
 *If the execution finishes without errors and the notes appear in your Obsidian, the foundation is validated. You can close PowerShell.*
 
----
-
 ## Phase 4: Silent Orchestration (The Secret Weapon)
 
 Now we tie the execution deep into the Windows core. The secret here is using the `pythonw.exe` binary (with the "W") to guarantee that no black CMD screen flashes while you are working.
