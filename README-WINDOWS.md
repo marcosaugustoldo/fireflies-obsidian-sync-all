@@ -1,8 +1,8 @@
-# 🪟 Ultimate Guide: Fireflies.ai → Obsidian Sync (Windows 11 Pro)
+# Ultimate Guide: Fireflies.ai → Obsidian Sync (Windows 11 Pro)
 
 This guide establishes a robust data pipeline based on State Control (Delta Sync) and AI Extraction (GraphQL). On Windows, we replace Systemd with the **Task Scheduler**, but we demand the same flawless, calendar-agnostic ghost execution.
 
-## 🛠️ Phase 1: Foundations (Professional Installation)
+## Phase 1: Foundations (Professional Installation)
 
 Amateurs rely on browser downloads and executables. We use the native Windows package manager to install tools directly via the terminal.
 
@@ -19,9 +19,9 @@ winget install --id Python.Python.3.12 -e --source winget
 
 *(Confirm with `Y` any prompts on the screen and wait for completion).*
 
-⚠️ **Mandatory:** After installation, close **ALL** PowerShell windows. Windows needs this hard reset to update the environment variables (PATH) and recognize the new commands.
+**Mandatory:** After installation, close **ALL** PowerShell windows. Windows needs this hard reset to update the environment variables (PATH) and recognize the new commands.
 
-## 📦 Phase 2: Cloning & Isolation (Venv)
+## Phase 2: Cloning & Isolation (Venv)
 
 Open a **new PowerShell** (as Administrator) and navigate to the folder where your infrastructure will live (e.g., Documents).
 
@@ -45,7 +45,7 @@ pip install -r requirements.txt
 
 ```
 
-## 🔐 Phase 3: Credentials & Destination (.env)
+## Phase 3: Credentials & Destination (.env)
 
 The automation needs to know your key and where to drop the files.
 
@@ -71,7 +71,7 @@ python sync_fireflies.py
 
 ---
 
-## 🕒 Phase 4: Silent Orchestration (The Secret Weapon)
+## Phase 4: Silent Orchestration (The Secret Weapon)
 
 Now we tie the execution deep into the Windows core. The secret here is using the `pythonw.exe` binary (with the "W") to guarantee that no black CMD screen flashes while you are working.
 
